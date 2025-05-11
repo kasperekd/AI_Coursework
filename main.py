@@ -67,9 +67,10 @@ y_test = df_test['Churn']
 # Random Forest
 rf = RandomForestClassifier(
     n_estimators=100,
-    max_depth=5,               
-    min_samples_split=10,      
-    min_samples_leaf=5,        
+    max_depth=5,
+    min_samples_split=10,
+    min_samples_leaf=5,
+    class_weight='balanced',  #учет дисбаланса классов
     random_state=42
 )
 rf.fit(X_train, y_train)
