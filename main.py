@@ -11,8 +11,18 @@ from imblearn.ensemble import BalancedRandomForestClassifier
 from xgboost import XGBClassifier, plot_importance
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
-from sklearn.model_selection import train_test_split
-import xgboost as xgb
+
+# Установка стиля через seaborn
+sns.set(style="whitegrid")
+plt.rcParams.update({
+    'font.size': 12,
+    'axes.titlesize': 14,
+    'axes.labelsize': 12,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10,
+    'legend.fontsize': 12,
+    'figure.titlesize': 16
+})
 
 # --- 1. Загрузка данных ---
 df_train = pd.read_csv('./data/churn-bigml-80.csv')
@@ -70,7 +80,7 @@ rf = RandomForestClassifier(
     max_depth=5,
     min_samples_split=10,
     min_samples_leaf=5,
-    class_weight='balanced',  #учет дисбаланса классов
+    class_weight='balanced',  
     random_state=42
 )
 rf.fit(X_train, y_train)
@@ -102,7 +112,7 @@ y_test_pred_rf = rf.predict(X_test)
 y_train_pred_xgb = xgb_clf.predict(X_train)
 y_test_pred_xgb = xgb_clf.predict(X_test)
 
-# --- 7. Функция для вывода метрик ---
+# --- 7. Функция для вывода метрик без матриц ошибок ---
 def print_metrics(model_name, y_train, y_train_pred, y_test, y_test_pred):
     print(f"{'-'*40}")
     print(f"{model_name} - Train Metrics")
@@ -112,30 +122,50 @@ def print_metrics(model_name, y_train, y_train_pred, y_test, y_test_pred):
     print(classification_report(y_test, y_test_pred))
     print(f"{'-'*40}\n")
 
-    cm_train = confusion_matrix(y_train, y_train_pred)
-    disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train)
-    disp_train.plot()
-    plt.title(f"{model_name} - Confusion Matrix (Train)")
-    plt.show()
-
-    cm_test = confusion_matrix(y_test, y_test_pred)
-    disp_test = ConfusionMatrixDisplay(confusion_matrix=cm_test)
-    disp_test.plot()
-    plt.title(f"{model_name} - Confusion Matrix (Test)")
-    plt.show()
-
 # --- 8. Вывод метрик ---
 print_metrics("Random Forest", y_train, y_train_pred_rf, y_test, y_test_pred_rf)
 print_metrics("XGBoost", y_train, y_train_pred_xgb, y_test, y_test_pred_xgb)
 
-# --- 9. Feature Importance (Random Forest) ---
-plt.figure(figsize=(10, 6))
-sns.barplot(x=rf.feature_importances_, y=X_train.columns)
-plt.title("Feature Importances - Random Forest")
-plt.xlabel("Importance")
-plt.ylabel("Feature")
+# --- 9. Построение объединенных матриц ошибок ---
+cm_train_rf = confusion_matrix(y_train, y_train_pred_rf)
+cm_test_rf = confusion_matrix(y_test, y_test_pred_rf)
+cm_train_xgb = confusion_matrix(y_train, y_train_pred_xgb)
+cm_test_xgb = confusion_matrix(y_test, y_test_pred_xgb)
+
+# Матрицы ошибок на одном графике для train
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+ConfusionMatrixDisplay(cm_train_rf).plot(ax=axes[0], cmap='Blues', colorbar=False)
+axes[0].set_title('Random Forest - Train')
+ConfusionMatrixDisplay(cm_train_xgb).plot(ax=axes[1], cmap='Blues')
+axes[1].set_title('XGBoost - Train')
+plt.suptitle('Confusion Matrices on Training Data')
 plt.tight_layout()
 plt.show()
 
-plot_importance(xgb_clf, max_num_features=10, height=0.5, title="Top 10 Features - XGBoost")
+# Матрицы ошибок на одном графике для test
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+ConfusionMatrixDisplay(cm_test_rf).plot(ax=axes[0], cmap='Blues', colorbar=False)
+axes[0].set_title('Random Forest - Test')
+ConfusionMatrixDisplay(cm_test_xgb).plot(ax=axes[1], cmap='Blues')
+axes[1].set_title('XGBoost - Test')
+plt.suptitle('Confusion Matrices on Test Data')
+plt.tight_layout()
+plt.show()
+
+# --- 10. Feature Importance ---
+rf_importances = pd.Series(rf.feature_importances_, index=X_train.columns)
+xgb_importances = pd.Series(xgb_clf.feature_importances_, index=X_train.columns)
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+sns.barplot(x=rf_importances.values, y=rf_importances.index, ax=axes[0])
+axes[0].set_title("Feature Importances - Random Forest")
+axes[0].set_xlabel("Importance")
+axes[0].set_ylabel("Feature")
+
+sns.barplot(x=xgb_importances.values, y=xgb_importances.index, ax=axes[1])
+axes[1].set_title("Feature Importances - XGBoost")
+axes[1].set_xlabel("Importance")
+axes[1].set_ylabel("")
+plt.suptitle('Feature Importances Comparison')
+plt.tight_layout()
 plt.show()
