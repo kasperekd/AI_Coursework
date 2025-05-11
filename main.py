@@ -12,6 +12,38 @@ from sklearn.model_selection import GridSearchCV
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 
+def initial_data_analysis(df_train, df_test):
+    fig, axes = plt.subplots(3, 2, figsize=(14, 18))
+    
+    # 1. Распределение целевой переменной (Churn) в тренировочном наборе
+    sns.countplot(data=df_train, x='Churn', ax=axes[0, 0])
+    axes[0, 0].set_title('Churn Distribution in Train Data')
+    
+    # 2. Гистограмма Total day minutes
+    sns.histplot(df_train['Total day minutes'], bins=30, kde=True, ax=axes[0, 1])
+    axes[0, 1].set_title('Total Day Minutes Distribution')
+    
+    # 3. Boxplot Customer service calls
+    sns.boxplot(data=df_train, y='Customer service calls', ax=axes[1, 0])
+    axes[1, 0].set_title('Customer Service Calls Distribution')
+    
+    # 4. Корреляционная матрица
+    numeric_cols = df_train.select_dtypes(include=[np.number]).columns
+    corr = df_train[numeric_cols].corr()
+    sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', ax=axes[1, 1])
+    axes[1, 1].set_title('Correlation Matrix')
+    
+    # 5. Распределение International plan
+    sns.countplot(data=df_train, x='International plan', ax=axes[2, 0])
+    axes[2, 0].set_title('International Plan Distribution')
+    
+    # 6. Распределение Voice mail plan
+    sns.countplot(data=df_train, x='Voice mail plan', ax=axes[2, 1])
+    axes[2, 1].set_title('Voice Mail Plan Distribution')
+    
+    plt.tight_layout()
+    plt.show()
+
 # --- 1. Загрузка данных ---
 df_train = pd.read_csv('./data/churn-bigml-80.csv')
 df_test = pd.read_csv('./data/churn-bigml-20.csv')
@@ -21,6 +53,8 @@ df_train.drop(columns=['Total day charge', 'Total eve charge',
                        'Total night charge', 'Total intl charge'], inplace=True)
 df_test.drop(columns=['Total day charge', 'Total eve charge', 
                       'Total night charge', 'Total intl charge'], inplace=True)
+
+initial_data_analysis(df_train, df_test)
 
 # --- 3. Кодирование регионов и категориальных признаков ---
 region_mapping = {
